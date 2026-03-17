@@ -5,23 +5,16 @@ source "$script_tester_path/asserts.sh"
 source "$script_tester_path/lib/share_var/shareVar.sh"
 shareVar initSpace 
 
-#core_tests=()
 _active_tests=()
 _before_active_tests=()
 
-declare -g -A _counter_test_buf=()
-declare -g -A _counter_empty_test_buf=()
 declare -g -A _counter_success_buf=()
 declare -g -A _counter_error_buf=()
-declare -g -A _counter_child_error_buf=()
-declare -g -A _counter_child_success_buf=()
-declare -g -A _counter_bad_test_buf=()
 
 declare -g -A _trace_test=()
 
 _name_core_test=
 _name_current_test=
-_disable_display_error= 
 
 
 _count_tests=0
@@ -32,8 +25,6 @@ _count_bad_test=0
 
 ENTRY_POINT=
 
-less_message_output=
-disable_display_test_error= 
 disable_display_ok= 
 disable_display_error=
 enable_trap_err=
@@ -84,66 +75,31 @@ tester._onCounter(){
     fi
     if [ ! -z "$parent_test" ]
     then
-        _counter_test_buf["$parent_test"]=$_count_tests
-        _counter_empty_test_buf["$parent_test"]=$_count_empty_tests
         _counter_success_buf["$parent_test"]=$_count_success
         _counter_error_buf["$parent_test"]=$_count_error
-        _counter_bad_test_buf["$parent_test"]=$_count_bad_test
     fi
 
-    _count_tests=1
-    _count_empty_tests=0
     _count_success=0
     _count_error=0
-    _count_bad_test=0
 
-    _counter_test_buf["$name_test"]=$_count_tests    
-    _counter_empty_test_buf["$name_test"]=$_count_empty_tests
     _counter_success_buf["$name_test"]=$_count_success
     _counter_error_buf["$name_test"]=$_count_error
-    _counter_child_error_buf["$name_test"]=$_count_error
-    _counter_child_success_buf["$name_test"]=$_count_success
-    _counter_bad_test_buf["$name_test"]=$_count_bad_test
+
 }
 
 tester._offCounter(){
     local name_test="$1"
     #echo $name_test
     local parent_test=${_active_tests[@]: -1}
-
-    if [[ "$_count_tests" -eq 1 && "$(($_count_success+$_count_error))" -eq 0 ]]
-    then
-            ((++_count_empty_tests))
-    fi
-    
-    if [[ "$(( $_count_error-${_counter_child_error_buf["$name_test"]} ))"  -ne 0 ]]
-     then
-        ((++_count_bad_test))
-    fi
-
-    #_count_own_error="$_count_error"
-
-    _counter_test_buf["$name_test"]=$_count_tests
-    _counter_empty_test_buf["$name_test"]=$_count_empty_tests
     _counter_success_buf["$name_test"]=$_count_success
     _counter_error_buf["$name_test"]=$_count_error
-    _counter_bad_test_buf["$name_test"]=$_count_bad_test
 
     if [ ! -z "$parent_test" ]
     then
-        _counter_test_buf["$parent_test"]=$(( ${_counter_test_buf["$parent_test"]}+$_count_tests ))
-        _counter_empty_test_buf["$parent_test"]=$(( ${_counter_empty_test_buf["$parent_test"]}+$_count_empty_tests ))
         _counter_success_buf["$parent_test"]=$(( ${_counter_success_buf["$parent_test"]}+$_count_success ))
         _counter_error_buf["$parent_test"]=$(( ${_counter_error_buf["$parent_test"]}+$_count_error ))
-        _counter_child_error_buf["$parent_test"]=$(( ${_counter_child_error_buf["$parent_test"]}+$_count_error ))
-        _counter_child_success_buf["$parent_test"]=$(( ${_counter_child_success_buf["$parent_test"]}+$_count_success ))
-        _counter_bad_test_buf["$parent_test"]=$(( ${_counter_bad_test_buf["$parent_test"]}+$_count_bad_test ))
-        _count_tests="${_counter_test_buf["$parent_test"]}"
-        _count_empty_tests="${_counter_empty_test_buf["$parent_test"]}"
         _count_success="${_counter_success_buf["$parent_test"]}"
-        _count_error="${_counter_error_buf["$parent_test"]}"
-        _count_bad_test="${_counter_bad_test_buf["$parent_test"]}"
-        
+        _count_error="${_counter_error_buf["$parent_test"]}" 
     fi
 
 }
@@ -162,16 +118,6 @@ tester.startTest(){
     _name_current_test="$name_test"
     tester._onCounter "$name_test"
     _active_tests+=("$name_test")
-    
-    if [[  "$less_message_output" != "yes" ]]
-    then
-        echo -e "\033[94m"
-        echo "------------"
-        echo "START: $name_test (${_trace_test["$name_test"]})"
-        echo "------------"
-        echo -en "\033[0m"
-        #echo -e "\033[97m"
-    fi
 }
 
 tester.endTest() {
@@ -184,29 +130,6 @@ tester.endTest() {
     local parent_test="${_active_tests[@]: -1}"
     tester._offCounter "$current_test"
     _name_current_test="$parent_test"
-    if [[  "$less_message_output" != "yes" || "$command" == "info" ]]
-    then
-        echo -en "\033[94m"
-        echo "------------"
-        echo "END TEST : $current_test (${_trace_test["$current_test"]})"
-        echo -en "\033[0m"
-        tester.info "$current_test"
-        echo -e "\033[94m------------\033[0m"
-    fi
-    if [[ "$(tester.amountTests "$current_test")" -le 1 &&  "$(tester.totalOfAsserts "$current_test")" -le 0 ]]
-    then
-        [ "$disable_display_test_error" != "yes" ] && echo -e "(Test failure) \033[0;35m Empty \"$current_test\" test (${_trace_test["$current_test"]} )\033[0m" >&2
-        return $TEST_ERR
-    fi
-
-    if [[ $(tester.amountOwnErrors "$current_test") -gt 0  ]] 
-    then
-        if [[ "$disable_display_test_error" != "yes" ]]
-        then
-            echo -e "(Test failure) \033[0;35mBad \"$current_test\" test (${_trace_test["$current_test"]})\033[0m" >&2
-        fi
-        return $TEST_ERR
-    fi
     
     if [[ $(tester.amountErrors "$current_test") -gt 0  ]] 
     then
@@ -226,15 +149,9 @@ tester.info(){
     fi
     echo -e "\033[94m"
     echo "Test $name_test (${_trace_test["$name_test"]})"
-    echo "Amount of tests: [ $(tester.amountTests  "$name_test") ]" 
-    echo "Amount of empty tests: [ $(tester.amountEmptyTests  "$name_test") ]" 
-    echo "Amount of bad tests: [ $(tester.amountBadTests  "$name_test") ]" 
-    echo "Amount of assert success: [ $(tester.amountSuccess "$name_test") ]" 
-    #echo "Amount of assert own success: [ $(tester.amountOwnSuccess "$name_test") ]" 
+    echo "Amount of assert success: [ $(tester.amountSuccess "$name_test") ]"  
     echo "Amount of assert errors: [ $(tester.amountErrors "$name_test") ]" 
-    #echo "Amount of assert own errors: [ $(tester.amountOwnErrors "$name_test") ]" 
     echo "Total of asserts: [ $(tester.totalOfAsserts "$name_test") ]"
-    #echo "Total of own asserts: [ $(tester.totalOfOwnAsserts "$name_test") ]"
     echo -en "\033[0m"
 }
 
@@ -242,29 +159,6 @@ tester.totalOfAsserts(){
     local name_test="$1"
     [ -z "$name_test" ] && name_test="$_name_core_test"
     echo "$(( $(tester.amountErrors "$name_test") + $(tester.amountSuccess "$name_test") ))"
-}
-
-tester.totalOfOwnAsserts(){
-    local name_test="$1"
-    [ -z "$name_test" ] && name_test="$_name_core_test"
-    echo "$(( $(tester.amountOwnErrors "$name_test") + $(tester.amountOwnSuccess "$name_test") ))"
-}
-
-tester.amountBadTests(){
-    local name_test="$1"
-    [ -z "$name_test" ] && name_test="$_name_core_test"
-    echo "${_counter_bad_test_buf["$name_test"]}"
-}
-tester.amountEmptyTests(){
-    local name_test="$1"
-    [ -z "$name_test" ] && name_test="$_name_core_test"
-    echo "${_counter_empty_test_buf["$name_test"]}"
-}
-
-tester.amountTests(){
-    local name_test="$1"
-    [ -z "$name_test" ] && name_test="$_name_core_test"
-    echo "${_counter_test_buf["$name_test"]}"
 }
 
 tester.amountErrors(){
@@ -294,9 +188,8 @@ tester.amountOwnSuccess(){
 tester.runTest(){
     local status=0
     #local ENTRY_POINT=$(tester._entryPoint)
-    shareVar export _counter_success_buf _counter_error_buf _counter_test_buf _counter_empty_test_buf _trace_test _name_core_test _name_current_test disable_display_ok disable_display_error less_message_output _count_success _count_error _count_tests _count_empty_tests _count_bad_test _active_tests _counter_child_error_buf _counter_child_success_buf _counter_bad_test_buf disable_display_test_error enable_trap_err
-
-    shareVar space|"$script_tester_path/wrap_unit_test.sh" "$1"
+    shareVar export _counter_success_buf _counter_error_buf _trace_test _name_core_test _name_current_test disable_display_ok disable_display_error  _count_success _count_error _active_tests  enable_trap_err
+    shareVar space|"$script_tester_path/wrap_unit_test_lite.sh" "$1"
     status=$?
     shareVar import    
     return $status
@@ -304,16 +197,8 @@ tester.runTest(){
 # $1 -  good (current open tests)  active_tests
 tester._closeBadTests(){
     local i status=0 
-    #local -a before_active_tests
-    #read -a before_active_tests <<< "$1"
     if [[ "$(declare -p _before_active_tests)" != "$(declare -p _active_tests)" ]]
     then
-        #if [[ "${#active_tests[@]}" -lt "${#good_active_tests[@]}" ]]
-        #then 
-        ## fatal test error. 
-        #    echo "The child unit test has completed its parent tests." >&2
-        #    return $FATAL_ERR
-        #fi
         for i in "${!_before_active_tests[@]}"
         do
             if [[ "${_before_active_tests[$i]}" != "${_active_tests[$i]}" ]]
@@ -323,14 +208,14 @@ tester._closeBadTests(){
             fi
         done
         for (( i=${#_active_tests[@]}-1; i>="${#_before_active_tests[@]}"; i-- ))
-        do     
-            #echo "Warn test: Closed bad \"${_active_tests[$i]}\" test ( ${_trace_test[${_active_tests[$i]}]} )" >&2
+        do 
             tester.endTest
             status=$TEST_ERR
         done
         return $status
     fi
 }
+
 tester._addTrap(){
     local command="$1"
     local signal="$2"
@@ -339,9 +224,9 @@ tester._addTrap(){
     then
         command="$(echo -e "$current_trap_command \n$command")"
     fi
-    #command="'$command'"
     trap "$command" "$signal"
 }
+
 tester._trapExit(){
     local status=$?
     set +e

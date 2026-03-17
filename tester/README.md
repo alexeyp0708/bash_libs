@@ -8,6 +8,15 @@ The tester keeps track of tests without completing code execution. If the statem
 Любой новый тест должен оформляться в строгой последовательности кода.
 Это необходимо чтобы тест можно было запустить как и отдельный юнит тест, так и подключить его в общую массу тестов и использовать не однократно. 
 
+Есть две вариации тестеров:
+- обычная (для написания и отладки тестов)
+- облегченная - для ускорения выполнения тестов исключая избыточный код.
+
+Облегченная версиия рассчитана только на информацию от утверждений и  исключена любая информация об обьявленных тестах (пустые тесты, плохие тесты количество тестов и тд), а также вывод любой избыточной информации. Исключены методы (функции) связаные с такой избыточностью.
+
+Тесты используемые в лайт тестере, по существу являются рабочей версией и по логике какие либо пустые тесты должны отсутствовать. Но в качетве альтернативы вы можете пустой тест пометить любым ложным утверждениеми. 
+
+Написанные тесты будут работать в обеих версиях, но использование некоторых методов (на получение информации о тестах) в таких тестах использовать не рекомендуется. (Такие методы использовать лучше в отдельном подключаемом файле если точно знаете какой тестер для тестов используете) 
 
 ```bash
 #!/bin/bash
@@ -19,13 +28,20 @@ script_example_path=$(dirname $(readlink -f  "${BASH_SOURCE[0]}"))
 # Otherwise the current test will extend the parent test
 if [[ -z "$init_tester" ]] 
 then
+    # Лайт версия тестера
+    #source "$script_example_path/../init_tester_lite.sh"
+    
+    # full version
     source "$script_example_path/../init_tester.sh"
     
     # Optional: you can expand the asserts with your own asserts  
     source "$script_tester_path/my_asserts.sh"
     
-    # disable detailed information for each test
+    # disable detailed information for each test (for full version)
     less_message_output="yes"
+
+    #Disable information about bad tests (for full version)
+    disable_display_test_error="yes" 
 
     # Disable display of successful assertions
     disable_display_ok="yes" 

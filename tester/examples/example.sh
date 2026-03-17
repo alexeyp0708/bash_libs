@@ -5,11 +5,13 @@ script_example_path=$(dirname $(readlink -f  "${BASH_SOURCE[0]}"))
 
 if [[ -z "$init_tester" ]] 
 then
-    source "$script_example_path/../init_tester.sh"
+    source "$script_example_path/../init_tester_lite.sh"
+    #source "$script_example_path/../init_tester.sh"
     less_message_output="yes"
-    disable_display_ok="yes" 
+    disable_display_ok="no" 
     disable_display_error="no"
     enable_trap_err="no"
+    disable_display_test_error="no"
     #ASSERT_ERR=8
     #TEST_ERR=12
     #FATAL_ERR=10
@@ -26,8 +28,8 @@ test_sub_example(){
 #run the unit test in a separate shell.
 test_unit_1(){
     #local less_message_output="no"
-    local disable_display_ok="no"
-    local disable_display_error="no"
+    #local disable_display_ok="no"
+    #local disable_display_error="no"
     
     tester startTest "UNIT_1"
         tester runTest "$script_example_path/sub_example.sh"
@@ -104,7 +106,7 @@ tester startTest EXAMPLE
 
         tester assert equalDataWithFIle "/path/file" "data"
         tester assert equalFileWithFIle "/path/file" "/path/file"
-        tester assert info 
+        #tester assert info 
 
     tester endTest
    # tester assert equal 1 2 "assert END"

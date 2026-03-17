@@ -1,13 +1,12 @@
 #!/bin/bash
 script_wrap_unit_test_path=$(dirname $(readlink -f  "${BASH_SOURCE[0]}"))
 
-source "$script_wrap_unit_test_path/init_tester.sh"
+source "$script_wrap_unit_test_path/init_tester_lite.sh"
 shareVar import
 _before_active_tests=("${_active_tests[@]}")
 shareVar_export(){
-    shareVar export _count_success _count_error _count_tests _count_empty_tests _count_bad_test _counter_success_buf _counter_error_buf _counter_test_buf _counter_empty_test_buf _trace_test _active_tests _counter_child_error_buf _counter_child_success_buf _counter_bad_test_buf
+    shareVar export _count_success _count_error  _counter_success_buf _counter_error_buf _trace_test _active_tests   
 }
-
 
 trap_exit(){
     error_status=$?
