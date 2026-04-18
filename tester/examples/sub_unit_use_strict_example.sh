@@ -13,7 +13,7 @@ fi
 set -eu -o pipefail
 
 tester startTest USE_STRICT
-    tester.assert equal 1 2 "assert1_USE_STRICT_test"
-    tester assert equal 1 1 "assert2_USE_STRICT_test"
+    tester.assert status 1 2 "assert1_USE_STRICT_test" ""
+    tester assert status 1 1 "assert2_USE_STRICT_test" ""
 tester endTest
 #set +eu +o pipefail

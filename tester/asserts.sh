@@ -85,30 +85,37 @@ assert.printOk(){
     return 0
 }
 
-#deprecated
-# use command status
-assert.success(){
-    echo "Assert "success" is deprecated.(${BASH[0]}:${LINENO[0]})" >&2
-    if [[ "$1" == "1" || "$1" == "true" || "$1" == "yes" || "$1" == "ok"  ]]
-    then
-        assert._printOk  "success( $1 )" "$2"
-        return 0
-    else
-        assert._printError "success ( $1 ) "  "$2"
-        return $ASSERT_ERR
-    fi
-}
 
-#as="[ a == a ]"; $as;
-# status "$?" "0" "check successful for success status"  "$as"
-# status "$?" "" "check successful for any errors" 
-# status "$?" "1" "check successful for  error 1"
+#Check status error
+#[ a == a ]
+# status "$?" "0" "check successful for success status"  "[ a == a ]"
+# status "$?" "" "check successful for any errors" "[ a == a ]"
+# status "$?" "1" "check successful for  error 1" "[ a == a ]"
+
+#Check command (Syntax sugar)
+# status "[ a == a ]" "0" "check successful for success status" 
+# status "[ a == a ]" "" "check successful for any errors" 
+# status "[ a == a ]" "1" "check successful for  error 1"
 assert.status(){
-    local status="$1" 
+    local status="" command="" exp=""
     local match="$2" 
     local message="$3"
-    local exp="$4" 
-    
+
+    if [[ $1 =~ ^[0-9]+$ ]]
+    then
+        status="$1"
+    else 
+        command="$1"
+        $command
+        status=$?
+       exp="$command"
+    fi 
+
+    if [ ! -z "$4" ]
+    then
+        exp="$4"
+    fi
+
     if [[ ( -z "$match" ) && ("$status" -ne 0)  || ("$status" -eq "$match") ]]
     then
         assert._printOk  "status( $exp )=>( $status )" "$message"
@@ -118,25 +125,6 @@ assert.status(){
         return $ASSERT_ERR
     fi
 }
-
-#deprecated
-# use command status
-assert.equal(){
-    #echo "Assert "equal" is deprecated.(${BASH_SOURCE[0]}:${LINENO[@]})" >&2
-    local math="$1"
-    local exp="$2"
-    local message="$3"
-    if [ "$math" == "$exp" ]
-    then
-        assert._printOk  "equal ('$math' == '$exp')" "$message"
-        return 0
-    else
-        assert._printError "equal ('$math' != '$exp')"  "$message" 
-        return $ASSERT_ERR
-    fi
-}
-
-
 
 #Required for planning future assers
 # note "ok" "message"  - Success note output  

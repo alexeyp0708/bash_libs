@@ -17,7 +17,7 @@ fi
 
 tester startTest PARENT
    
-    #tester assert equal 1 2 ""
+    #tester assert status 1 2 ""
    
     tester startTest EMPTY
     tester endTest
@@ -26,26 +26,26 @@ tester startTest PARENT
             tester startTest EMPTY
             tester endTest
         tester endTest
-        tester assert equal 1 2 ""
+        tester assert status 1 2 ""
         
         tester startTest SUB_CHILD
-            tester assert equal 1 2 ""
+            tester assert status 1 2 ""
         tester endTest
         
-        tester assert equal 1 2 ""
+        tester assert status 1 2 ""
         
         tester startTest SUB_CHILD2
-            tester assert equal 1 2 ""
+            tester assert status 1 2 ""
         tester endTest
 
-        tester assert equal 1 2 ""
+        tester assert status 1 2 ""
     tester endTest
 
-    #tester assert equal 1 2 ""
+    #tester assert status 1 2 ""
     
     tester startTest CHILD2
-        tester assert equal 1 1 ""
+        tester assert status 1 1 ""
     tester endTest
-    #tester assert equal 1 2 ""
+    #tester assert status 1 2 ""
 
 tester endTest

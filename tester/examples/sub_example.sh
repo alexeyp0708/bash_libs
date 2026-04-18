@@ -12,6 +12,6 @@ then
 fi
 
 tester startTest SUB_EXAMPLE
-    tester assert equal 1 2 "assert1_SUB_EXAMPLE_test"
-    tester assert equal 1 1 "assert2_SUB_EXAMPLE_test"
+    tester assert status 1 2 "assert1_SUB_EXAMPLE_test" ""
+    tester assert status 1 1 "assert2_SUB_EXAMPLE_test" ""
 tester endTest

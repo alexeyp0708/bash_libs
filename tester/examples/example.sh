@@ -52,9 +52,9 @@ tester startTest EXAMPLE
     # full name EXAMPLE.test_1
         tester startTest "subtest_1_1"
         # full name EXAMPLE.test_1.subtest_1_1
-            tester assert equal 2 1 "assert 1"
+            tester assert status 2 1 "assert 1"
         tester endTest
-        tester assert equal 1 1 "assert 2"
+        tester assert status 1 1 "assert 2"
     tester endTest
 
     test_sub_example
@@ -67,7 +67,7 @@ tester startTest EXAMPLE
             tester endTest
         tester endTest
         tester startTest no_empty
-             tester assert equal 1 1 "assert_no_empty"
+             tester assert status 1 1 "assert_no_empty"
         tester endTest
     tester endTest
 
@@ -83,6 +83,15 @@ tester startTest EXAMPLE
         tester assert status $status "2" "Status bad executed command which does not correspond to error 2" "$expr"
         tester assert status $status "1" "Status executed command with error 1" "$expr"
         tester assert status $status "" "Status bad executed command for any errors except 0" "$expr"
+
+        [ "a" == "a" ]
+        tester assert status $? "0" "Check status success executed command"
+
+        expr="[ 'a' != 'a' ]"
+  
+        tester assert status "$expr" "2" "Command bad executed command which does not correspond to error 2" 
+        tester assert status "$expr" "1" "Status executed command with error 1"
+        tester assert status "$expr" "" "Status bad executed command for any errors except 0"
 
         [ "a" == "a" ]
         tester assert status $? "0" "Check status success executed command"
