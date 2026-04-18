@@ -176,13 +176,21 @@ asserts test
     # check successful status
 
     tester assert status $? 0 "message test" "$?==0"
+    # check success run command
+    tester assert status '[ "0" == "0" ]' 0 "message test"
 
     # check error 1 status
+    tester assert status $? 1 "message test"
 
-    tester assert status $? 1 "message test" "$?==1"    
+    # check error 1 status for bad command
+    tester assert status '[ "0" != "0" ]' 1 "message test"
 
     # check any errors 
     tester assert status $status "" "message test" "$?!=0"
+
+    # check any errors  for bad command
+    tester assert status '[ "0" != "0" ]' "" "message test"
+
 
     # note at this point.
     #This syntactic sugar. alternative to printError or printOk
