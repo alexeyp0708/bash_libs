@@ -106,7 +106,7 @@ assert.status(){
         status="$1"
     else 
         command="$1"
-        $command
+        source <(echo "$command")
         status=$?
        exp="$command"
     fi 
