@@ -143,7 +143,7 @@ assert.note(){
 
 assert.equalDataWithFIle(){
     local file="$1"
-    local exp="$2"
+    local exp=$(echo -e "$2")
     local message="$3"
     if [ ! -f "$file" ]
     then
