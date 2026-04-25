@@ -8,37 +8,43 @@ is_packed="yes"
 source "$script_reader_path/../reader.sh"
 
 
-var="$($reader read -i "Test var 1")"
-echo -e "Test var 1=>$var"
 
-var="$($reader read -i "Test var 2" -m "yes|no")"
-echo -e "Test var 2 (math)=> $var"
+var="$($reader read -i "Test var 1" <<< "test")"
+[ "$var" != "test" ] && echo "${LINENO} [ "$var" != "test" ]"
 
-var="$($reader read -i "Test var 3 (math)" -m "yes|no" -d "no")"
-echo -e "Test var 3 (default)=> $var"
+var="$($reader read -i "Test var 2" -m "yes|no" <<<"yes")"
+[ "$var" != "yes" ] && echo "${LINENO} [ "$var" != "test" ]"
 
-var="$($reader read -i "Test var 4 (pattern)" -p "^[0-9]$" -d "1")"
-echo -e "Test var 4 (pattern)=> $var"
+var="$($reader read -i "Test var 3 (math)" -m "yes|no" -d "no" <<< "")"
+[ "$var" != "no" ] && echo "${LINENO} [ "$var" != "no" ]"
 
-var="$($reader read -i "Test var 5 (required)" -p "^[0-9]$" -r )"
-echo -e "Test var 5 (required)=> $var"
+var="$($reader read -i "Test var 4 (pattern)" -p "^[0-9]$" -d "1" <<< "15")"
+[ "$var" != "1" ] && echo "${LINENO} [ "$var" != "1" ]"
+
+var="$($reader read -i "Test var 5 (required)" -p "^[0-9]$" -r <<< "1")"
+[ "$var" != "1" ] && echo "${LINENO} [ "$var" != "1" ]"
 
 var="$($reader read -i "Test var 6 (substitution)" -p "^[0-9]$" -r -s "3" )"
-echo -e "Test var 6 (substitution)=> $var"
+[ "$var" != "3" ] && echo "${LINENO} [ "$var" != "3" ]"
 
-var="$($reader read -i "Test var 7 (color)" -c $'\e[32m\e[1m')"
-echo -e "Test var 7 (color+bold)=> $var"
+var="$($reader read -i "Test var 6-1" -r -s "" <<< qwer)"
+[ "$var" != "qwer" ] && echo "${LINENO} [ "$var" != "qwer" ]"
 
-var="$($reader read -i "Test var 8 (timeout)" -o "-t 1")"
-echo -e "Test var 8 (set timeout option )=> $var"
+var="$($reader read -i "Test var 6-1" -r -s "   ")"
+[ ! -z "$var" ] && echo "${LINENO} [ ! -z "$var" ]"
 
-var=( $($reader read -i "Test var 9 (array)" -o "-a") )
-echo -e "Test var 9 (set array)=> $var"
-declare -p var
+var="$($reader read -i "Test var 7 (color)" -c $'\e[32m\e[1m' <<< "any text")"
+[ "$var" != "any text" ] && echo "[${LINENO} "$var" != "any text" ]"
 
-reader read -i "Test var 10" -o "-a" -v "var" 
-echo -e "Test var 10 (set array)=> $var"
-declare -p var
+var="$($reader read -i "Test var 8 (timeout)" -d "qwer" -o "-t 1")"
+[ "$var" != "qwer" ] && echo "[${LINENO} "$var" != "qwer" ]"
+
+var=( $($reader read -i "Test var 9 (array)" -o "-a" <<< "one two") )
+[[ "${var[@]}" != "one two" ]] && echo "${LINENO} [ "${var[@]}" != "one two" ]"
+
+declare -a var
+reader read -i "Test var 10" -o "-a" -v "var" <<< "one two"
+[[ "${var[@]}" != "one two" ]] && echo "${LINENO} [ "${var[@]}" != "one two" ]"
 unset var
 
 echo "end"
