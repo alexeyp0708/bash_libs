@@ -7,7 +7,8 @@ reader="$script_reader_path/../reader.sh"
 is_packed="yes"
 source "$script_reader_path/../reader.sh"
 
-
+var="$($reader read -i "Test var 1")"
+var="$($reader read -i "Test var 1")"
 
 var="$($reader read -i "Test var 1" <<< "test")"
 [ "$var" != "test" ] && echo "${LINENO} [ "$var" != "test" ]"
