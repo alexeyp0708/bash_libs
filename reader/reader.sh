@@ -11,7 +11,7 @@ reader.read(){
 [ -o "-rptsnad" ] - Options for "read" command 
 [ -c $'\color_id' ] - Color Interactive information. Example:  - green text:  -c $'\e[32m';  - green+bold text:  -c $'\e[32m\e[1m''
 [ -v "name_var" ] -  If the reader participates in the script as a package (source /pathe/reader.sh), then you can specify a variable to which the value will be assigned. Then the value will not be displayed on the screen
-
+[ -x ] - Allow receiving data via pipe
 After execution it will display the entered value
 
 Usage example
@@ -27,7 +27,7 @@ EOF
 )"
     local _message_ _color_ _read_options_ 
     local OPTIND OPTARG
-    while getopts "i:d:m:p:s:c:o:v:r" _options_; do
+    while getopts "i:d:m:p:s:c:o:v:rx" _options_; do
         case "${_options_}" in
             \?) 
                 echo "$help" >&2
@@ -65,6 +65,10 @@ EOF
             v)
                 declare -n _ref_var_="${OPTARG}"
             ;;
+            x)
+                local  allow_pipe="yes"
+            ;;
+
 
         esac
     done
@@ -103,7 +107,16 @@ EOF
         then
             _val_="$_substitution_"
         else 
-            read -p "${_color_}${full_message}"$'\033[0m' $_read_options_ _val_
+
+            if [[ -v allow_pipe &&  -p /dev/stdin ]]
+            then
+                read -p $'\n'"${_color_}${full_message}"$'\033[0m' $_read_options_ _val_  
+            else 
+                read -p $'\n'"${_color_}${full_message}"$'\033[0m' $_read_options_ _val_ < /dev/tty
+            fi
+
+            # всегда считывать с терминала
+            
         fi
         if [[ -z "$_val_" || -v _default_ &&  -v _substitution_ && "$_default_" == "$_val_" ]]
         then
