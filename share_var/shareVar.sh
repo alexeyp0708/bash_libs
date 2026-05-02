@@ -23,7 +23,7 @@ shareVar.import() {
     while IFS= read -r line; do
         import_var="$(echo "$line" | sed -r 's/^declare (-.)+ //')"
         import_var_name="$(echo "$import_var" | grep -oP '^.+?(?==|\s*$)')"
-        if [[ -z "$vars" || ! -z "$(echo "$vars" | grep -oP "(?:^| )$import_var(?:$| )")" ]]; then
+        if [[ -z "$vars" || ! -z "$(echo "$vars" | grep -oP "(?:^|\s)$import_var_name(?:$|\s)")" ]]; then
             if [ -v $import_var_name ] || declare -p "$import_var_name" &>/dev/null; then
             [[ ! $import_var =~ "=" ]] &&  import_var="$import_var="
                 to_source="$to_source\n$import_var"
@@ -31,10 +31,10 @@ shareVar.import() {
                 to_source="$to_source\n$(echo "$line" | sed -r 's/^declare /declare -g /')"
             fi
         fi
-    done <"$_share_var_space"  #<<<"$import_vars"
+    done <"$_share_var_space"
     >"$_share_var_space"
     to_source="$(echo "$to_source" | sed 's/\\n/\n/g')"
-    source <(echo "$to_source")
+    [ ! -z "$to_source" ] && source <(echo "$to_source")
 }
 
 #Initializes space (file) for variables
