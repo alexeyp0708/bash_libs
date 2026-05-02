@@ -22,9 +22,10 @@ shareVar.import() {
     local to_source=
     while IFS= read -r line; do
         import_var="$(echo "$line" | sed -r 's/^declare (-.)+ //')"
-        import_var_name="$(echo "$import_var" | grep -oP '^.+?(?==)')"
+        import_var_name="$(echo "$import_var" | grep -oP '^.+?(?==|$)')"
         if [[ -z "$vars" || ! -z "$(echo "$vars" | grep -oP "(?:^| )$import_var(?:$| )")" ]]; then
             if [ -v "$import_var_name" ]; then
+                [[ ! $import_var =~ "=" ]] &&  import_var="$import_var="
                 to_source="$to_source\n$import_var"
             else
                 to_source="$to_source\n$(echo $line | sed -r 's/^declare /declare -g /')"
@@ -32,7 +33,9 @@ shareVar.import() {
         fi
     done <"$_share_var_space"  #<<<"$import_vars"
     >"$_share_var_space"
+    
     to_source="$(echo "$to_source" | sed 's/\\n/\n/g')"
+
     source <(echo "$to_source")
 }
 
