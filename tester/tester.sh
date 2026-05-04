@@ -174,6 +174,10 @@ tester.startTest(){
     fi
 }
 
+tester.start(){
+    tester.startTest $@
+}
+
 tester.endTest() {
     local last_error=$?
     local command=""
@@ -213,6 +217,10 @@ tester.endTest() {
        return $TEST_ERR 
     fi
     return 0
+}
+
+tester.end(){
+    tester.endTest #@
 }
 
 tester.info(){

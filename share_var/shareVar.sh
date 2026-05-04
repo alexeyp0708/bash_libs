@@ -23,6 +23,7 @@ shareVar.import() {
     while IFS= read -r line; do
         import_var="$(echo "$line" | sed -r 's/^declare (-.)+ //')"
         import_var_name="$(echo "$import_var" | grep -oP '^.+?(?==|\s*$)')"
+        #If a variable is declared in its own scope, you simply need to redefine it. Calling declare -- will simply create a variable in the current scope
         if [[ -z "$vars" || ! -z "$(echo "$vars" | grep -oP "(?:^|\s)$import_var_name(?:$|\s)")" ]]; then
             if [ -v $import_var_name ] || declare -p "$import_var_name" &>/dev/null; then
             [[ ! $import_var =~ "=" ]] &&  import_var="$import_var="
