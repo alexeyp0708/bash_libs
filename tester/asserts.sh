@@ -143,6 +143,8 @@ assert.note(){
 
 assert.equalDataWithFIle(){
     local file="$1"
+    # echo -e заменит все экранирующие последовательности и возможно возниктнет сравнение экранирующих данных
+    # поэтому надо сравнивать данные через source < echo equal
     local exp=$(echo -e "$2")
     local message="$3"
     if [ ! -f "$file" ]
@@ -164,6 +166,7 @@ assert.equalDataWithFIle(){
 }
 
 assert.equalFileWithFIle(){
+    # большие данные могут поломать сравнение. необходимо построчно сравнивать оба файла.
     local file_math="$1"
     local file_exp="$2"
     local message="$3"

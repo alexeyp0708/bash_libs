@@ -124,7 +124,4 @@ templater(){
     "templater.$@"
 }
 
-if [ -z "$is_packed" ]
-then
-   templater "$@"
-fi
+[  "$(readlink -f "${BASH_SOURCE[0]}")" == "$(readlink -f "$0")" ] && templater "$@"
