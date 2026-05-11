@@ -1,5 +1,26 @@
 #!/bin/bash
+reader._entryPoint(){
+    local ENTRY_POINT
+    local trace_num
 
+    for (( i=${#FUNCNAME[@]}-1; i>=0; i-- ))
+    do
+        if [[ "${FUNCNAME[$i]}" == "reader" ||  ! -z "$(echo ${FUNCNAME[$i]}|grep -oP '^reader.[\S]+')" ]]
+        then
+            trace_num=$i
+            break
+        fi    
+    done
+    if [[ ! -z "$trace_num" ]]
+    then
+        ENTRY_POINT="$(readlink -f "${BASH_SOURCE[$trace_num+1]}"):${BASH_LINENO[$trace_num]}"
+    fi
+    if [ -z "$ENTRY_POINT" ]
+    then
+        ENTRY_POINT="$(readlink -f "${BASH_SOURCE[@]: -1}"):${BASH_LINENO[@]: -2:1}" 
+    fi
+    echo "$ENTRY_POINT"
+}
 reader.read() {
     local help="$(
         cat <<EOF
@@ -124,7 +145,11 @@ EOF
             echo -e "\033[91mBad value '$_val_'\033[0m" >&2
             _val_=""
             _cycle_="yes"
-            unset _substitution_
+            if [[ -v "_substitution_" ]]
+                then
+                    echo -e "\033[91mError: The substitution  option value  (${_substitution_}) failed verification! : ( $(reader._entryPoint) )\033[0m" && return 1 
+                fi
+            fi
         fi
     done
     if [[ -v _ref_var_ ]] || declare -p "_ref_var_" &>/dev/null; then

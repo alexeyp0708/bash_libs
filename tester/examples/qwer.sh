@@ -1,17 +1,50 @@
 #!/bin/bash
+_current_pid=$BASHPID
+var=0
+TMP_DIR=$(mktemp -d)
+trap "child_exit $_current_pid" SIGCHLD
 
-func1(){
-    echo "func1"
+_exit_pid(){
+   echo "var=$var" >"$TMP_DIR/core"
+}
+init(){
+    [ -z "$_current_pid" ] && _current_pid=$BASHPID
+    if [ $_current_pid != $BASHPID ]
+    then
+        trap "_exit_pid $_current_pid" EXIT
+        trap "child_exit $BASHPID" SIGCHLD
+        _current_pid=$BASHPID
+    fi
+}
+child_exit(){
+     if [ -f "$TMP_DIR/core" ]
+    then
+        source "$TMP_DIR/core"
+        #rm "$TMP_DIR/core"
+    fi
 }
 
-func2(){
-    echo "func2-"
+action(){
+    init
+    echo $BASHPID
+    (( ++var ))
 }
+ echo $BASHPID
+action
 
-trap "func1" EXIT
-trap 'echo "hello"' EXIT
-sign="EXIT"
-command="$( trap -p $sign|grep -Po "(?<=^trap -- ')[\s\S]+(?=' $sign\$)" )"
-command="$(echo -e "$command \necho 'bay'")"
-echo "$command"
-trap "$command" EXIT
+(
+    echo $BASHPID
+    action
+    (
+        action
+    )
+    action
+    (
+        action
+    )
+)
+trap -p SIGCHLD
+
+action
+
+echo "$var"

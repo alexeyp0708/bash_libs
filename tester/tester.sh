@@ -5,6 +5,7 @@ source "$script_tester_path/asserts.sh"
 source "$script_tester_path/lib/share_var/shareVar.sh"
 shareVar initSpace 
 
+_current_pid=$BASHPID
 #core_tests=()
 _active_tests=()
 _before_active_tests=()
@@ -372,9 +373,33 @@ tester._trapErr(){
         tester assert _printError "error ($1)" "Error caught"
     fi
 }
+tester._trapSubProc_EXIT(){
+    shareVar export _count_success _count_error _count_tests _count_empty_tests _count_bad_test _counter_success_buf _counter_error_buf _counter_test_buf _counter_empty_test_buf _trace_test _active_tests _counter_child_error_buf _counter_child_success_buf _counter_bad_test_buf
+    kill -SIGUSR2 $1
+}
+
+
+tester._trapSubProc_SIGUSR2(){
+    shareVar import
+}
+
+tester._init(){
+    if [[ "$_current_pid" != "$BASHPID" ]]
+    then
+        trap - SIGCHLD
+        trap - EXIT
+        trap "tester._trapSubProc_EXIT $_current_pid" EXIT
+        trap "tester._trapSubProc_SIGUSR2" SIGUSR2 
+        _current_pid=$BASHPID
+    fi
+}
+
 tester(){
-    "tester.$@"
-    return $?
+    tester._init
+    [[ ! -z "$@" ]] && "tester.$@"
+    local status=$?
+    return $status
 }
 tester._addTrap "tester._trapExit \$?" "EXIT"
 tester._addTrap "tester._trapErr \$?" "ERR"
+tester._addTrap  "tester._trapSubProc_SIGUSR2" "SIGUSR2"
