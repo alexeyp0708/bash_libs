@@ -1,50 +1,9 @@
 #!/bin/bash
-_current_pid=$BASHPID
-var=0
-TMP_DIR=$(mktemp -d)
-trap "child_exit $_current_pid" SIGCHLD
-
-_exit_pid(){
-   echo "var=$var" >"$TMP_DIR/core"
+run(){
+    $1
 }
-init(){
-    [ -z "$_current_pid" ] && _current_pid=$BASHPID
-    if [ $_current_pid != $BASHPID ]
-    then
-        trap "_exit_pid $_current_pid" EXIT
-        trap "child_exit $BASHPID" SIGCHLD
-        _current_pid=$BASHPID
-    fi
-}
-child_exit(){
-     if [ -f "$TMP_DIR/core" ]
-    then
-        source "$TMP_DIR/core"
-        #rm "$TMP_DIR/core"
-    fi
-}
-
-action(){
-    init
-    echo $BASHPID
-    (( ++var ))
-}
- echo $BASHPID
-action
-
 (
-    echo $BASHPID
-    action
-    (
-        action
-    )
-    action
-    (
-        action
-    )
+    source "$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/qwer2.sh"
+    run hello
 )
-trap -p SIGCHLD
-
-action
-
-echo "$var"
+run hello

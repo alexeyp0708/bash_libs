@@ -102,7 +102,11 @@ tester startTest EXAMPLE
             test "a" != "a" 
         )
         tester assert status "$?" "1" "Status last error code"
-
+        (
+            # For example, if you need to source a file but not save its state in the main process.
+            # WARN: Do not abuse this since the subprocess tester passes data through a file.
+            tester assert status "0" "0" "Asserts in subprocess"
+        )
 
         # note at this point.
         #This syntactic sugar. alternative to printError or printOk

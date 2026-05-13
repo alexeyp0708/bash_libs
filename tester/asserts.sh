@@ -11,56 +11,64 @@ ENTRY_POINT=
 ASSERT_ERR=8
 is_init_assert="yes"
 
-assert._entryPoint(){
+_assert.entryPoint() {
+    local func_entry_point="$1"
+    local find_shift="assert"
+    [[ ! -z "$2" ]] && find_shift="$2"
+
     local ENTRY_POINT=$ENTRY_POINT
     local trace_num
-    if [[ -z "${ENTRY_POINT}"  ]]
-    then
-        for (( i=${#FUNCNAME[@]}-1; i>=0; i-- ))
-        do
-            if [[ "${FUNCNAME[$i]}" == "assert"  || ! -z "$(echo ${FUNCNAME[$i]}|grep -oP '^assert.[\S]+')" ]]
-            then
-                trace_num=$i
-                break
-            fi    
+    if [ -z "$func_entry_point" ]; then
+        func_entry_point="assert"
+    fi
+    if [[ -z "${ENTRY_POINT}" ]]; then
+        for i in "${!FUNCNAME[@]}"; do
+            if [[ ! -z $trace_num ]]; then
+                if [[ "${FUNCNAME[$i]}" == "$find_shift" ]]; then
+                    trace_num=$(($i))
+                    break
+                fi
+            elif [[ "${FUNCNAME[$i]}" == "$func_entry_point" ]]; then
+                trace_num=$(($i))
+                [[ "$find_shift" == "$func_entry_point" ]] && break
+                continue
+            fi
         done
-        if [[ ! -z "$trace_num" ]]
-        then
-            ENTRY_POINT="$(readlink -f "${BASH_SOURCE[$trace_num+1]}"):${BASH_LINENO[$trace_num]}"
+        if [[ ! -z "$trace_num" ]]; then
+            ENTRY_POINT="$(readlink -f "${BASH_SOURCE[$trace_num + 1]}"):${BASH_LINENO[$trace_num]}"
         fi
     fi
-    if [ -z "$ENTRY_POINT" ]
-    then
-        ENTRY_POINT="$(readlink -f "${BASH_SOURCE[@]: -1}"):${BASH_LINENO[@]: -2:1}" 
+    if [ -z "$ENTRY_POINT" ]; then
+        ENTRY_POINT="$(readlink -f "${BASH_SOURCE[@]: -1}"):${BASH_LINENO[@]: -2:1}"
     fi
     echo "$ENTRY_POINT"
 }
 
-assert._fail(){
-    assert._printError "$1" "$2" 
+_assert.fail(){
+    _assert.printError "$1" "$2" 
     return 8
 }
-assert._print(){
+_assert.print(){
     local type="$1"
     local sys_message="$(echo -e "$2"|sed ':a;N;$!ba;s/\n/\\\\n/g')"
     local message="$3"
     local color="$4"   
-    local entry_point="$(assert._entryPoint)"
+    local entry_point="$(_assert.entryPoint)"
     echo -e "($type) $color Assert of test (\"$_name_current_test\"): $sys_message : $message ( $entry_point ) \033[97m"
 }
 
 # _printError ${system_message} ${message} ${entry_point}
-assert._printError(){
+_assert.printError(){
     ((++_count_error))
     [[ "$disable_display_error" == "yes" ]] && return 0
-    assert._print "Assert failure" "$1" "$2" "\033[91m"
+    _assert.print "Assert failure" "$1" "$2" "\033[91m"
 }
 
 # _printOk ${system_message} ${message} ${entry_point}
-assert._printOk(){
+_assert.printOk(){
     ((++_count_success))
     [[ "$disable_display_ok" == "yes" ]] && return 0
-    assert._print "Assert ok" "$1" "$2" "\033[92m"
+    _assert.print "Assert ok" "$1" "$2" "\033[92m"
 }
 
 assert.info(){
@@ -72,16 +80,15 @@ assert.info(){
     echo "------------------------"
 }
 
-
-# printError  ${message}
+# printError  ${message} [${status or expression}]
 assert.printError(){
-    assert._printError "printError ()" "$1"
+    _assert.printError "Error ($2)" "$1"
     return $ASSERT_ERR
 }
 
-# printOk  ${message} 
+# printOk  ${message} [${status or expression}]
 assert.printOk(){
-    assert._printOk "printOk ()" "$1"
+    _assert.printOk "Ok ($2)" "$1"
     return 0
 }
 
@@ -118,10 +125,10 @@ assert.status(){
 
     if [[ ( -z "$match" ) && ("$status" -ne 0)  || ("$status" -eq "$match") ]]
     then
-        assert._printOk  "status( $exp )=>( $status )" "$message"
+        _assert.printOk  "status( $exp )=>( $status )" "$message"
         return 0
     else
-       assert._printError  "status( $exp )=>( $status != $match )" "$message"
+       _assert.printError  "status( $exp )=>( $status != $match )" "$message"
         return $ASSERT_ERR
     fi
 }
@@ -132,10 +139,10 @@ assert.status(){
 assert.note(){
     if [[ "$1" == "ok" ]]
     then
-        assert._printOk  "note ( $1 )" "$2"
+        _assert.printOk  "note ( $1 )" "$2"
         return 0
     else
-        assert._printError "note ( $1 )" "$2"
+        _assert.printError "note ( $1 )" "$2"
         return $ASSERT_ERR
     fi
 }
@@ -149,7 +156,7 @@ assert.equalDataWithFIle(){
     local message="$3"
     if [ ! -f "$file" ]
     then
-        assert._printError "not exist ( $file )" "$message"
+        _assert.printError "not exist ( $file )" "$message"
         return 8
     fi
 
@@ -157,10 +164,10 @@ assert.equalDataWithFIle(){
 
     if [ "$math" == "$exp" ]
     then
-        assert._printOk  "equalDataWithFIle ('$math' == '$exp')" "$message"
+        _assert.printOk  "equalDataWithFIle ('$math' == '$exp')" "$message"
         return 0
     else
-      assert._printError "equalDataWithFIle ('$math' != '$exp')"  "$message" 
+      _assert.printError "equalDataWithFIle ('$math' != '$exp')"  "$message" 
         return $ASSERT_ERR
     fi
 }
@@ -172,12 +179,12 @@ assert.equalFileWithFIle(){
     local message="$3"
     if [ ! -f "$file" ]
     then
-        assert._printError "not exist ( $file_math )" "$message"
+        _assert.printError "not exist ( $file_math )" "$message"
         return $ASSERT_ERR
     fi
     if [ ! -f "$file_exp" ]
     then
-        assert._printError "not exist ( $file_exp )" "$message"
+        _assert.printError "not exist ( $file_exp )" "$message"
         return $ASSERT_ERR
     fi
 
@@ -186,10 +193,10 @@ assert.equalFileWithFIle(){
 
     if [ "$(cat "$file_math")" == "$(cat "$file_exp")" ]
     then
-        assert._printOk  "equalFileWithFIle ('$math' == '$exp')" "$message"
+        _assert.printOk  "equalFileWithFIle ('$math' == '$exp')" "$message"
         return 0
     else
-        assert._printError "equalFileWithFIle ('$math' != '$exp')" "$message" 
+        _assert.printError "equalFileWithFIle ('$math' != '$exp')" "$message" 
         return $ASSERT_ERR
     fi
 }
