@@ -13,26 +13,29 @@ shareVar.export(){
 #If a variable exists, it will override its value. Those. can override local variables.
 # If the variable does not exist, will create a global variable
 #Warn: The user must take care to match the types of existing variables
-shareVar.import(){ 
+shareVar.import() {
     local vars="$@"
-    local import_vars=$(cat "$_share_var_space")
-    >"$_share_var_space"
+    ##This behavior is necessary when you need to free up space immediately. But why?
+    #local import_vars=$(cat "$_share_var_space")
+    #>"$_share_var_space"
     local import_var import_var_name
     local to_source=
     while IFS= read -r line; do
-        import_var="$(echo -e "$line"|sed  -r 's/^declare (-.)+ //')"
-        import_var_name="$(echo -e $import_var|grep -oP '^.+?(?==)')"
-        if [[ -z "$vars" || ! -z "$(echo $vars|grep -oP "(?:^| )$import_var(?:$| )")" ]]
-        then
-            if [ -v "$import_var_name" ]
-            then
+        import_var="$(echo "$line" | sed -r 's/^declare (-.)+ //')"
+        import_var_name="$(echo "$import_var" | grep -oP '^.+?(?==|\s*$)')"
+        #If a variable is declared in its own scope, you simply need to redefine it. Calling declare -- will simply create a variable in the current scope
+        if [[ -z "$vars" || ! -z "$(echo "$vars" | grep -oP "(?:^|\s)$import_var_name(?:$|\s)")" ]]; then
+            if [ -v $import_var_name ] || declare -p "$import_var_name" &>/dev/null; then
+            [[ ! $import_var =~ "=" ]] &&  import_var="$import_var="
                 to_source="$to_source\n$import_var"
-            else 
-                to_source="$to_source\n$(echo $line|sed -r 's/^declare /declare -g /')"      
+            else
+                to_source="$to_source\n$(echo "$line" | sed -r 's/^declare /declare -g /')"
             fi
-        fi        
-    done <<< "$import_vars" 
-    source <(echo -e "$to_source")  
+        fi
+    done <"$_share_var_space"
+    >"$_share_var_space"
+    to_source="$(echo "$to_source" | sed 's/\\n/\n/g')"
+    [ ! -z "$to_source" ] && source <(echo "$to_source")
 }
 
 #Initializes space (file) for variables

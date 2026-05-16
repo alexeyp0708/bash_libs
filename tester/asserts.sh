@@ -5,13 +5,14 @@ script_asserts_path=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
 _name_current_test=
 disable_display_error=
 disable_display_ok=
+disable_display=
 _count_success=
 _count_error=
 ENTRY_POINT=
 ASSERT_ERR=8
 is_init_assert="yes"
 
-_assert.entryPoint() {
+_assert_entryPoint() {
     local func_entry_point="$1"
     local find_shift="assert"
     [[ ! -z "$2" ]] && find_shift="$2"
@@ -44,34 +45,34 @@ _assert.entryPoint() {
     echo "$ENTRY_POINT"
 }
 
-_assert.fail(){
-    _assert.printError "$1" "$2" 
+_assert_fail(){
+    _assert_printError "$1" "$2" 
     return 8
 }
-_assert.print(){
+_assert_print(){
     local type="$1"
     local sys_message="$(echo -e "$2"|sed ':a;N;$!ba;s/\n/\\\\n/g')"
     local message="$3"
     local color="$4"   
-    local entry_point="$(_assert.entryPoint)"
+    local entry_point="$(_assert_entryPoint)"
     echo -e "($type) $color Assert of test (\"$_name_current_test\"): $sys_message : $message ( $entry_point ) \033[97m"
 }
 
 # _printError ${system_message} ${message} ${entry_point}
-_assert.printError(){
+_assert_printError(){
     ((++_count_error))
-    [[ "$disable_display_error" == "yes" ]] && return 0
-    _assert.print "Assert failure" "$1" "$2" "\033[91m"
+    [[ "$disable_display_error" == "yes" || "$disable_display" == "yes"  ]] && return 0
+    _assert_print "Assert failure" "$1" "$2" "\033[91m"
 }
 
 # _printOk ${system_message} ${message} ${entry_point}
-_assert.printOk(){
+_assert_printOk(){
     ((++_count_success))
-    [[ "$disable_display_ok" == "yes" ]] && return 0
-    _assert.print "Assert ok" "$1" "$2" "\033[92m"
+    [[ "$disable_display_ok" == "yes" || "$disable_display" == "yes" ]] && return 0
+    _assert_print "Assert ok" "$1" "$2" "\033[92m"
 }
 
-assert.info(){
+assert_info(){
     echo "------------------------"
     echo "Test - $_name_current_test"
     echo "------------------------"
@@ -81,14 +82,14 @@ assert.info(){
 }
 
 # printError  ${message} [${status or expression}]
-assert.printError(){
-    _assert.printError "Error ($2)" "$1"
+assert_printError(){
+    _assert_printError "Error ($2)" "$1"
     return $ASSERT_ERR
 }
 
 # printOk  ${message} [${status or expression}]
-assert.printOk(){
-    _assert.printOk "Ok ($2)" "$1"
+assert_printOk(){
+    _assert_printOk "Ok ($2)" "$1"
     return 0
 }
 
@@ -103,10 +104,19 @@ assert.printOk(){
 # status "[ a == a ]" "0" "check successful for success status" 
 # status "[ a == a ]" "" "check successful for any errors" 
 # status "[ a == a ]" "1" "check successful for  error 1"
-assert.status(){
+assert_status(){
     local status="" command="" exp=""
-    local match="$2" 
-    local message="$3"
+    local match= message=
+
+    if [  "$#" -ge 2  ]
+    then
+        match="$2"
+    fi
+
+    if [  "$#" -ge 3  ]
+    then
+        message="$3"
+    fi
 
     if [[ $1 =~ ^[0-9]+$ ]]
     then
@@ -118,17 +128,18 @@ assert.status(){
        exp="$command"
     fi 
 
-    if [ ! -z "$4" ]
+    #if [ ! -z "$4" ]
+    if [  "$#" -ge 4  ]
     then
         exp="$4"
     fi
 
     if [[ ( -z "$match" ) && ("$status" -ne 0)  || ("$status" -eq "$match") ]]
     then
-        _assert.printOk  "status( $exp )=>( $status )" "$message"
+        _assert_printOk  "status( $exp )=>( $status )" "$message"
         return 0
     else
-       _assert.printError  "status( $exp )=>( $status != $match )" "$message"
+       _assert_printError  "status( $exp )=>( $status != $match )" "$message"
         return $ASSERT_ERR
     fi
 }
@@ -136,19 +147,19 @@ assert.status(){
 #Required for planning future assers
 # note "ok" "message"  - Success note output  
 # note "any text" "message"  - Error note output  
-assert.note(){
+assert_note(){
     if [[ "$1" == "ok" ]]
     then
-        _assert.printOk  "note ( $1 )" "$2"
+        _assert_printOk  "note ( $1 )" "$2"
         return 0
     else
-        _assert.printError "note ( $1 )" "$2"
+        _assert_printError "note ( $1 )" "$2"
         return $ASSERT_ERR
     fi
 }
 
-
-assert.equalDataWithFIle(){
+#deprecated
+assert_equalDataWithFIle(){
     local file="$1"
     # echo -e заменит все экранирующие последовательности и возможно возниктнет сравнение экранирующих данных
     # поэтому надо сравнивать данные через source < echo equal
@@ -156,7 +167,7 @@ assert.equalDataWithFIle(){
     local message="$3"
     if [ ! -f "$file" ]
     then
-        _assert.printError "not exist ( $file )" "$message"
+        _assert_printError "not exist ( $file )" "$message"
         return 8
     fi
 
@@ -164,27 +175,28 @@ assert.equalDataWithFIle(){
 
     if [ "$math" == "$exp" ]
     then
-        _assert.printOk  "equalDataWithFIle ('$math' == '$exp')" "$message"
+        _assert_printOk  "equalDataWithFIle ('$math' == '$exp')" "$message"
         return 0
     else
-      _assert.printError "equalDataWithFIle ('$math' != '$exp')"  "$message" 
+      _assert_printError "equalDataWithFIle ('$math' != '$exp')"  "$message" 
         return $ASSERT_ERR
     fi
 }
-
-assert.equalFileWithFIle(){
-    # большие данные могут поломать сравнение. необходимо построчно сравнивать оба файла.
+#deprecated
+assert_equalFileWithFIle(){
+# сравнить  побайтно cmp -s file1.txt file2.txt && echo "Файлы идентичны" || echo "Файлы различаются"
+# сравнить через хеш файлов md5sum == md5sum 
     local file_math="$1"
     local file_exp="$2"
     local message="$3"
     if [ ! -f "$file" ]
     then
-        _assert.printError "not exist ( $file_math )" "$message"
+        _assert_printError "not exist ( $file_math )" "$message"
         return $ASSERT_ERR
     fi
     if [ ! -f "$file_exp" ]
     then
-        _assert.printError "not exist ( $file_exp )" "$message"
+        _assert_printError "not exist ( $file_exp )" "$message"
         return $ASSERT_ERR
     fi
 
@@ -193,15 +205,15 @@ assert.equalFileWithFIle(){
 
     if [ "$(cat "$file_math")" == "$(cat "$file_exp")" ]
     then
-        _assert.printOk  "equalFileWithFIle ('$math' == '$exp')" "$message"
+        _assert_printOk  "equalFileWithFIle ('$math' == '$exp')" "$message"
         return 0
     else
-        _assert.printError "equalFileWithFIle ('$math' != '$exp')" "$message" 
+        _assert_printError "equalFileWithFIle ('$math' != '$exp')" "$message" 
         return $ASSERT_ERR
     fi
 }
 
 assert (){
-    "assert.$@"
+    "assert_$@"
     return $?
 }
